@@ -1,4 +1,4 @@
-name: 🚀 LINKFORGE PRO — Build & Deploy
+name: 🚀 LINKFORGE PRO — GitHub Pages Deploy
 
 on:
   push:
@@ -6,14 +6,15 @@ on:
   pull_request:
     branches: [main]
 
+# GitHub Pages 배포를 위한 권한
+permissions:
+  contents: write
+
 jobs:
-  # ── 1. 프론트엔드 빌드 검증 ────────────────────────────────────────────
-  build-frontend:
-    name: 🏗️ Frontend Build
+  # ── 프론트엔드 빌드 & GitHub Pages 배포 ──────────────────────────────────
+  deploy-frontend:
+    name: 🏗️ Build & Deploy to GitHub Pages
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
 
     steps:
       - name: Checkout
@@ -23,32 +24,32 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        working-directory: frontend
+        run: npm install
 
-      - name: Build
+      - name: Build (GitHub Pages 경로 설정)
+        working-directory: frontend
         run: npm run build
         env:
-          # 빌드 시 API Base URL은 상대 경로 사용 (Vercel 라우팅 활용)
+          # GitHub Pages는 https://habaikal.github.io/linkforge/ 경로에서 서빙
+          VITE_BASE_PATH: "/linkforge/"
+          # AI 기능: 로컬 백엔드 실행 시에만 동작 (GitHub Pages는 정적만 지원)
           VITE_API_BASE_URL: ""
 
-      - name: Upload dist artifact
-        uses: actions/upload-artifact@v4
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        if: github.ref == 'refs/heads/main'
         with:
-          name: frontend-dist
-          path: frontend/dist
-          retention-days: 1
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: frontend/dist
+          enable_jekyll: false
 
-  # ── 2. 백엔드 의존성 설치 검증 ─────────────────────────────────────────
-  build-backend:
-    name: 🖥️ Backend Verify
+  # ── 백엔드 문법 검증 ──────────────────────────────────────────────────────
+  verify-backend:
+    name: 🖥️ Backend Syntax Check
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
 
     steps:
       - name: Checkout
@@ -58,36 +59,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        working-directory: backend
+        run: npm install
 
       - name: Syntax check
+        working-directory: backend
         run: node --check server.js
-
-  # ── 3. Vercel 배포 (main 브랜치 push 시에만) ────────────────────────────
-  deploy:
-    name: 🌐 Deploy to Vercel
-    needs: [build-frontend, build-backend]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: Deploy to Vercel Production
-        run: vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
