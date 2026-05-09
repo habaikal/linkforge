@@ -1,20 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <title>LINKFORGE PRO</title>
+  <!-- GitHub Pages SPA 리다이렉트: 404를 index.html로 전달 -->
   <script>
-    // GitHub Pages SPA 리다이렉트
-    // 새로고침 시 404 → index.html로 리다이렉트
-    var pathSegmentsToKeep = 1; // /linkforge/ 1 segment
+    // 현재 경로를 쿼리스트링으로 변환해 루트로 리다이렉트
     var l = window.location;
-    l.replace(
-      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-      l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-      l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-      (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-      l.hash
-    );
+    var base = '/linkforge/';
+    var path = l.pathname.slice(base.length) || '';
+    var qs = path ? '?p=/' + path.replace(/&/g, '~and~') : '';
+    l.replace(base + qs + l.hash);
   </script>
 </head>
 <body></body>
